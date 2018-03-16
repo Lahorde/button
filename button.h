@@ -1,91 +1,93 @@
 /******************************************************************************
  * @file    button.h
  * @author  Rémi Pincent - INRIA
- * @date    26 juin 2014   
+ * @date    01/03/2018
  *
- * @brief button definition. Maps physical button push to software events
- * 
- * Project : button
+ * @brief Handle button with different press durations.
+ *
+ * Project : peopeo
  * Contact:  Rémi Pincent - remi.pincent@inria.fr
- * 
- * Revision History:
- * TODO_revision history
- *****************************************************************************/
-
-#ifndef BUTTON_H_
-#define BUTTON_H_
-
-#include <stdint.h>
-#include <timer.h>
-#include <EventListener.h>
-#include "Arduino.h"
-
-/**
- * @class Button
- * @brief button object detects short and long presses. It notifies it
- * over asynchronous events.
  *
- * Asynchronous events list :
- *   internally used :
- *      - BUTTON_PRESSED_INT
- *      - BUTTON_RELEASED_INT
- *   to be used externally :
- *      - BUTTON_PRESSED
- *      - BUTTON_RELEASED
- *      - BUTTON_SHORT_PRESS
- *      - BUTTON_LONG_PRESS
- * all those events must be defined in events.h
- */
-class Button : public TimerListener, public EventListener
+ * Revision History:
+ * Insert github reference
+ * 
+ * LICENSE :
+ * peopeo (c) by Rémi Pincent
+ * peopeo is licensed under a
+ * Creative Commons Attribution-NonCommercial 3.0 Unported License.
+ *
+ * You should have received a copy of the license along with this
+ * work.  If not, see <http://creativecommons.org/licenses/by-nc/3.0/>.
+ *****************************************************************************/
+#ifndef BUTTON_H
+#define BUTTON_H
+
+#ifdef __cplusplus
+extern "C"
 {
-public :
-	typedef enum{
-		SHORT_PRESS = 0,
-		MEDIUM_PRESS,
-		LONG_PRESS,
-		LONG_LONG_PRESS,
-		UNDEFINED_PRESS
-	}EPressType;
+#endif
+/**************************************************************************
+ * Include Files
+ **************************************************************************/
+#include "exti_listener.h"
+#include "stm32f0xx_hal_def.h"
+#include "timer.h"
+#include <stdint.h>
 
-private :
-	static const uint16_t DEFAULT_SHORT_PRESS_DURATION_MS;
-	static const uint16_t DEFAULT_MEDIUM_PRESS_DURATION_MS;
-	static const uint16_t DEFAULT_LONG_PRESS_DURATION_MS;
-	static const uint16_t DEFAULT_LONG_LONG_PRESS_DURATION_MS;
+/**************************************************************************
+ * Manifest Constants
+ **************************************************************************/
 
-	static const unsigned int NO_COUNTING_DURATION_MS;
-	static const unsigned int PERIODIC_NOTIF_MS;
-	uint8_t _u8_button_pin;
-	unsigned int _u16_current_press_dur;
-	/** to get press duration */
-	Timer _timer;
-	bool _b_pull_up;
-	uint8_t _u8_id;
-	/** spikes filtering */
-	EPinTrigger _e_lastEdge;
+/**************************************************************************
+ * Type Definitions
+ **************************************************************************/
+typedef enum{
+	SHORT_PRESS = 0,
+	MEDIUM_PRESS,
+	LONG_PRESS,
+	LONG_LONG_PRESS,
+	UNDEFINED_PRESS
+}EPressType;
 
-public:
-	Button(unsigned int arg_u16_button_pin,
-			uint8_t arg_u8_id = 0,
-			bool arg_b_pull_up = true);
-	~Button();
+typedef enum{
+	PULL_UP,
+	PULL_DOWN,
+	OUT_OF_ENUM_CONFIG
+}EBtnConfig;
 
-	inline uint8_t getId(void)
-	{
-		return _u8_id;
-	}
+typedef void (*TButtonCb)(void*, EPressType, uint32_t);
 
-private :
-	/**
-	 * Asynchronous event occurred. Handle it.
-	 * @param arg_u8_event_code
-	 * @param arg_s16_event_param
-	 */
-	void processEvent(uint8_t arg_u8_event_code, int arg_s16_event_param);
+typedef struct
+{
+	TButtonCb _pfn_cb;
+	void* _p_cb_data;
+	EBtnConfig _e_btnConfig;
+	EEdge _e_lastEdge;
+	GPIO_TypeDef* _ps_GPIOx;
+	uint16_t _u16_gpioPin;
+	TsTimer _s_timer;
+	uint32_t _u32_pressStart;
+}TsButton;
 
-	void timerElapsed(void);
+/**************************************************************************
+ * Global variables
+ **************************************************************************/
 
-	static void buttonISR(Button* arg_p_button_instance);
-};
+/**************************************************************************
+ * Macros
+ **************************************************************************/
 
-#endif /* BUTTON_H_ */
+/**************************************************************************
+ * Global Functions Declarations
+ **************************************************************************/
+void Button_init(TsButton*);
+
+void Button_start(TsButton* arg_ps_button);
+
+void Button_stop(TsButton* arg_ps_button);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BUTTON_H */
